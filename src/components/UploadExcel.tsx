@@ -67,45 +67,26 @@ export default function UploadExcel({ onSuccess, onError, onClose }: UploadExcel
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        style={{
-          border: `2px dashed ${isDragging ? '#378ADD' : 'var(--color-border-secondary)'}`,
-          borderRadius: 'var(--border-radius-lg)',
-          padding: '32px 24px',
-          textAlign: 'center',
-          background: isDragging ? '#EFF6FF' : 'var(--color-background-secondary)',
-          transition: 'all 0.15s',
-        }}
+        className={[
+          'border-2 border-dashed rounded-lg px-6 py-8 text-center transition-all duration-150',
+          isDragging ? 'border-brand bg-[#EFF6FF]' : 'border-border-mid bg-bg-secondary',
+        ].join(' ')}
       >
-        <FileSpreadsheet
-          size={36}
-          style={{ color: '#378ADD', margin: '0 auto 12px' }}
-        />
-        <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
+        <FileSpreadsheet size={36} className="text-brand mx-auto mb-3" />
+        <div className="text-[14px] font-medium text-text-primary mb-1">
           Drop your Excel file here
         </div>
-        <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '16px' }}>
+        <div className="text-[12px] text-text-secondary mb-4">
           Supports .xlsx and .xls — column names may vary
         </div>
 
-        <label style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '7px 14px',
-          background: 'var(--color-background-primary)',
-          border: '0.5px solid var(--color-border-secondary)',
-          borderRadius: 'var(--border-radius-md)',
-          fontSize: '12px',
-          fontWeight: 500,
-          color: 'var(--color-text-primary)',
-          cursor: 'pointer',
-        }}>
+        <label className="inline-flex items-center gap-1.5 px-3.5 py-1.75 bg-bg-primary border border-border-mid rounded-md text-[12px] font-medium text-text-primary cursor-pointer">
           <Upload size={14} />
           Choose file
           <input
             type="file"
             accept=".xlsx,.xls"
-            style={{ display: 'none' }}
+            className="hidden"
             onChange={handleFileSelect}
           />
         </label>
@@ -113,23 +94,14 @@ export default function UploadExcel({ onSuccess, onError, onClose }: UploadExcel
 
       {/* Selected file */}
       {file && (
-        <div style={{
-          marginTop: '12px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          padding: '10px 14px',
-          background: 'var(--color-background-secondary)',
-          borderRadius: 'var(--border-radius-md)',
-          border: '0.5px solid var(--color-border-tertiary)',
-        }}>
-          <FileSpreadsheet size={16} style={{ color: '#378ADD', flexShrink: 0 }} />
-          <div style={{ flex: 1, fontSize: '13px', color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div className="mt-3 flex items-center gap-2.5 px-3.5 py-2.5 bg-bg-secondary rounded-md border border-border-subtle">
+          <FileSpreadsheet size={16} className="text-brand shrink-0" />
+          <div className="flex-1 text-[13px] text-text-primary overflow-hidden text-ellipsis whitespace-nowrap">
             {file.name}
           </div>
           <button
             onClick={() => setFile(null)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', padding: '2px', display: 'flex' }}
+            className="bg-transparent border-0 cursor-pointer text-text-secondary p-0.5 flex"
           >
             <X size={16} />
           </button>
@@ -141,19 +113,11 @@ export default function UploadExcel({ onSuccess, onError, onClose }: UploadExcel
         <button
           onClick={handleUpload}
           disabled={isUploading}
-          style={{
-            marginTop: '16px',
-            width: '100%',
-            padding: '10px',
-            background: isUploading ? '#7ab3e0' : '#378ADD',
-            color: 'white',
-            border: 'none',
-            borderRadius: 'var(--border-radius-md)',
-            fontSize: '13px',
-            fontWeight: 500,
-            cursor: isUploading ? 'not-allowed' : 'pointer',
-            transition: 'background 0.15s',
-          }}
+          className={[
+            'mt-4 w-full py-2.5 rounded-md text-[13px] font-medium text-white border-0',
+            'transition-colors duration-150 disabled:cursor-not-allowed',
+            isUploading ? 'bg-[#7ab3e0]' : 'bg-brand cursor-pointer',
+          ].join(' ')}
         >
           {isUploading ? 'Processing...' : 'Upload & Process'}
         </button>

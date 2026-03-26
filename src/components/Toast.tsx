@@ -12,6 +12,12 @@ interface ToastProps {
   onClose: () => void;
 }
 
+const typeStyles: Record<ToastType, { wrapper: string; iconCls: string; Icon: typeof CheckCircle }> = {
+  success: { wrapper: 'bg-bg-primary border-border-mid',   iconCls: 'text-green',     Icon: CheckCircle  },
+  error:   { wrapper: 'bg-[#fef2f2] border-[#fecaca]',    iconCls: 'text-red',        Icon: XCircle      },
+  info:    { wrapper: 'bg-bg-info   border-border-mid',    iconCls: 'text-text-info',  Icon: AlertCircle  },
+};
+
 export default function Toast({ message, type, duration = 4500, onClose }: ToastProps) {
   const [visible, setVisible] = useState(true);
 
@@ -23,71 +29,28 @@ export default function Toast({ message, type, duration = 4500, onClose }: Toast
     return () => clearTimeout(timer);
   }, [duration, onClose]);
 
-  const config = {
-    success: {
-      icon: <CheckCircle size={18} style={{ color: '#1D9E75', flexShrink: 0 }} />,
-      bg: 'var(--color-background-primary)',
-      border: 'var(--color-border-secondary)',
-    },
-    error: {
-      icon: <XCircle size={18} style={{ color: '#ef4444', flexShrink: 0 }} />,
-      bg: '#fef2f2',
-      border: '#fecaca',
-    },
-    info: {
-      icon: <AlertCircle size={18} style={{ color: '#378ADD', flexShrink: 0 }} />,
-      bg: 'var(--color-background-info)',
-      border: 'var(--color-border-secondary)',
-    },
-  };
-
-  const current = config[type];
+  const { wrapper, iconCls, Icon } = typeStyles[type];
 
   return (
     <div
-      style={{
-        position: 'fixed',
-        bottom: '24px',
-        right: '24px',
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: '12px',
-        padding: '14px 16px',
-        borderRadius: '12px',
-        border: `1px solid ${current.border}`,
-        backgroundColor: current.bg,
-        boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-        zIndex: 9999,
-        maxWidth: '380px',
-        minWidth: '260px',
-        opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0)' : 'translateY(12px)',
-        transition: 'opacity 0.25s, transform 0.25s',
-      }}
+      className={[
+        'fixed bottom-6 right-6 flex items-start gap-3 px-4 py-[14px]',
+        'rounded-lg border shadow-[0_8px_24px_rgba(0,0,0,0.12)]',
+        'z-[9999] max-w-[380px] min-w-[260px]',
+        'transition-[opacity,transform] duration-[250ms]',
+        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3',
+        wrapper,
+      ].join(' ')}
     >
-      <div style={{ marginTop: '1px' }}>{current.icon}</div>
+      <Icon size={18} className={`${iconCls} shrink-0 mt-px`} />
 
-      <p style={{
-        flex: 1,
-        fontSize: '13px',
-        lineHeight: '1.5',
-        color: 'var(--color-text-primary)',
-        margin: 0,
-      }}>
+      <p className="flex-1 text-[13px] leading-[1.5] text-text-primary">
         {message}
       </p>
 
       <button
         onClick={() => { setVisible(false); setTimeout(onClose, 250); }}
-        style={{
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          color: 'var(--color-text-secondary)',
-          padding: '1px',
-          flexShrink: 0,
-          marginTop: '1px',
-        }}
+        className="bg-transparent border-0 cursor-pointer text-text-secondary p-px shrink-0 mt-px"
       >
         <X size={14} />
       </button>

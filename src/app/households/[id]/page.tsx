@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { use } from 'react';
 import Sidebar from '@/components/Sidebar';
+import { shell, main, btnPrimary, detailHeader, detailBody, sectionCard, sectionTitle, detailLine } from '@/lib/styles';
 import Modal from '@/components/Modal';
 import UploadAudio from '@/components/UploadAudio';
 import Toast from '@/components/Toast';
@@ -62,26 +63,34 @@ interface Household {
   audio_insights: AudioInsight[];
 }
 
-function getInitials(name: string): string {
+// ── badge ─────────────────────────────────────────────────────────────────────
+const badgeBase = 'inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium whitespace-nowrap max-w-48 overflow-hidden text-ellipsis';
+const badgeVariant: Record<string, string> = {
+  blue:  'bg-bg-info text-text-info',
+  amber: 'bg-[#FAEEDA] text-[#854F0B]',
+  green: 'bg-[#EAF3DE] text-[#3B6D11]',
+  gray:  'bg-bg-secondary text-text-secondary border border-border-subtle',
+};
+function riskVariant(risk: string | null) {
+  if (!risk) return badgeVariant.gray;
+  const r = risk.toLowerCase();
+  if (r === 'low') return badgeVariant.green;
+  if (r === 'moderate' || r === 'medium') return badgeVariant.amber;
+  return badgeVariant.blue;
+}
+
+function getInitials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 }
 
-function formatCurrency(amount: number | null): string {
+function formatCurrency(amount: number | null) {
   if (!amount || amount > 1e12) return '—';
-  if (amount >= 1000000) return '$' + (amount / 1000000).toFixed(1) + 'M';
-  if (amount >= 1000) return '$' + (amount / 1000).toFixed(0) + 'K';
+  if (amount >= 1_000_000) return '$' + (amount / 1_000_000).toFixed(1) + 'M';
+  if (amount >= 1_000)     return '$' + (amount / 1_000).toFixed(0) + 'K';
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
 }
 
-function getRiskBadgeClass(risk: string | null): string {
-  if (!risk) return 'badge-gray';
-  const r = risk.toLowerCase();
-  if (r === 'low') return 'badge-green';
-  if (r === 'moderate' || r === 'medium') return 'badge-amber';
-  return 'badge-blue';
-}
-
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
@@ -89,16 +98,15 @@ export default function HouseholdDetailPage({ params }: { params: Promise<{ id: 
   const { id } = use(params);
 
   const [household, setHousehold] = useState<Household | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]     = useState(true);
   const [showAudioModal, setShowAudioModal] = useState(false);
-  const { toasts, showToast, removeToast } = useToast();
+  const { toasts, showToast, removeToast }  = useToast();
 
   const fetchHousehold = useCallback(async () => {
     try {
       const res = await fetch(`/api/households/${id}`);
       if (!res.ok) throw new Error('Not found');
-      const data = await res.json();
-      setHousehold(data);
+      setHousehold(await res.json());
     } catch {
       showToast('Failed to load household', 'error');
     } finally {
@@ -106,113 +114,89 @@ export default function HouseholdDetailPage({ params }: { params: Promise<{ id: 
     }
   }, [id, showToast]);
 
-  useEffect(() => {
-    fetchHousehold();
-  }, [fetchHousehold]);
+  useEffect(() => { fetchHousehold(); }, [fetchHousehold]);
 
-  if (loading) {
+  if (loading || !household) {
     return (
-      <div className="shell">
+      <div className={shell}>
         <Sidebar />
-        <div className="main" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ color: 'var(--color-text-secondary)', fontSize: '13px' }}>Loading...</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!household) {
-    return (
-      <div className="shell">
-        <Sidebar />
-        <div className="main" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ color: 'var(--color-text-secondary)', fontSize: '13px' }}>Household not found.</div>
+        <div className={`${main} items-center justify-center`}>
+          <div className="text-text-secondary text-[13px]">
+            {loading ? 'Loading…' : 'Household not found.'}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="shell">
+    <div className={shell}>
       <Sidebar />
 
-      <div className="main">
-        <div className="tabs">
-          <Link href="/households" className="tab">Households</Link>
-          <div className="tab active">{household.name}</div>
-          <Link href="/insights" className="tab">Insights</Link>
-        </div>
-
-        <div className="detail-header">
-          <Link href="/households" className="back-btn">← Back</Link>
-          <div className="detail-name">{household.name}</div>
-          <div className="detail-chips">
+      <div className={main}>
+        {/* Detail header */}
+        <div className={detailHeader}>
+          <Link href="/households" className="text-[12px] text-text-secondary flex items-center gap-1 no-underline">
+            ← Back
+          </Link>
+          <div className="text-[15px] font-medium text-text-primary">{household.name}</div>
+          <div className="flex gap-1.5 ml-auto items-center flex-wrap justify-end max-w-120">
             {household.risk_tolerance && (
-              <span className={`badge ${getRiskBadgeClass(household.risk_tolerance)}`}>
+              <span className={`${badgeBase} ${riskVariant(household.risk_tolerance)}`}>
                 {household.risk_tolerance} risk
               </span>
             )}
             {household.time_horizon && (
-              <span className="badge badge-blue">{household.time_horizon}</span>
+              <span className={`${badgeBase} ${badgeVariant.blue}`}>{household.time_horizon}</span>
             )}
-            <button className="btn-sm btn-primary" onClick={() => setShowAudioModal(true)}>
+            <button className={btnPrimary} onClick={() => setShowAudioModal(true)}>
               Upload Audio
             </button>
           </div>
         </div>
 
-        <div className="detail-body">
-          {/* Financial Overview */}
-          <div className="section-card">
-            <div className="section-title">Financial overview</div>
-            <div className="detail-line">
-              <span className="dl">Annual income</span>
-              <span className="dv green">{formatCurrency(household.income)}</span>
-            </div>
-            <div className="detail-line">
-              <span className="dl">Net worth</span>
-              <span className="dv green">{formatCurrency(household.net_worth)}</span>
-            </div>
-            <div className="detail-line">
-              <span className="dl">Liquid net worth</span>
-              <span className="dv">{formatCurrency(household.liquid_net_worth)}</span>
-            </div>
-            <div className="detail-line">
-              <span className="dl">Tax bracket</span>
-              <span className="dv">{household.tax_bracket || '—'}</span>
-            </div>
-            <div className="detail-line">
-                <span className="dl">Expense range</span>
-                <span className="dv">{household.expense_range || '—'}</span>
-            </div>
-            <div className="detail-line">
-              <span className="dl">Time horizon</span>
-              <span className="dv">{household.time_horizon || '—'}</span>
-            </div>
-            <div className="detail-line">
-              <span className="dl">Investment objective</span>
-              <span className="dv">{household.primary_investment_objective || '—'}</span>
-            </div>
+        {/* Detail body */}
+        <div className={detailBody}>
+
+          {/* Financial overview */}
+          <div className={sectionCard}>
+            <div className={sectionTitle}>Financial overview</div>
+            {[
+              { label: 'Annual income',        val: formatCurrency(household.income),              green: true  },
+              { label: 'Net worth',             val: formatCurrency(household.net_worth),           green: true  },
+              { label: 'Liquid net worth',      val: formatCurrency(household.liquid_net_worth),    green: false },
+              { label: 'Tax bracket',           val: household.tax_bracket || '—',                  green: false },
+              { label: 'Expense range',         val: household.expense_range || '—',                green: false },
+              { label: 'Time horizon',          val: household.time_horizon || '—',                 green: false },
+              { label: 'Investment objective',  val: household.primary_investment_objective || '—', green: false },
+            ].map(({ label, val, green }) => (
+              <div key={label} className={detailLine}>
+                <span className="text-text-secondary">{label}</span>
+                <span className={`font-medium ${green ? 'text-green' : 'text-text-primary'}`}>{val}</span>
+              </div>
+            ))}
             {household.notes && (
-              <div style={{ marginTop: '10px', fontSize: '12px', color: 'var(--color-text-secondary)', lineHeight: '1.6', padding: '8px', background: 'var(--color-background-secondary)', borderRadius: 'var(--border-radius-md)' }}>
+              <div className="mt-3 text-[12px] text-text-secondary leading-relaxed px-3 py-2.5 bg-bg-secondary rounded-lg">
                 {household.notes}
               </div>
             )}
           </div>
 
           {/* Members */}
-          <div className="section-card">
-            <div className="section-title">Members ({household.members.length})</div>
+          <div className={sectionCard}>
+            <div className={sectionTitle}>Members ({household.members.length})</div>
             {household.members.length === 0 ? (
-              <div style={{ color: 'var(--color-text-secondary)', fontSize: '12px', padding: '8px 0' }}>No members on record.</div>
+              <div className="text-text-secondary text-[12px] py-2">No members on record.</div>
             ) : (
-              household.members.map((member) => (
-                <div key={member.id} className="member-row">
-                  <div className="avatar">{getInitials(member.name)}</div>
+              household.members.map((m) => (
+                <div key={m.id} className="flex items-center gap-3 py-2.5 border-b border-border-subtle last:border-b-0">
+                  <div className="w-8 h-8 rounded-full bg-bg-info flex items-center justify-center text-[11px] font-medium text-text-info shrink-0">
+                    {getInitials(m.name)}
+                  </div>
                   <div>
-                    <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-primary)' }}>{member.name}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>
-                      {[member.relationship, member.occupation, member.employer].filter(Boolean).join(' · ') || member.email || '—'}
+                    <div className="text-[13px] font-medium text-text-primary">{m.name}</div>
+                    <div className="text-[11px] text-text-secondary">
+                      {[m.relationship, m.occupation, m.employer].filter(Boolean).join(' · ') || m.email || '—'}
                     </div>
                   </div>
                 </div>
@@ -221,25 +205,25 @@ export default function HouseholdDetailPage({ params }: { params: Promise<{ id: 
           </div>
 
           {/* Accounts */}
-          <div className="section-card">
-            <div className="section-title">Accounts ({household.accounts.length})</div>
+          <div className={sectionCard}>
+            <div className={sectionTitle}>Accounts ({household.accounts.length})</div>
             {household.accounts.length === 0 ? (
-              <div style={{ color: 'var(--color-text-secondary)', fontSize: '12px', padding: '8px 0' }}>No accounts on record.</div>
+              <div className="text-text-secondary text-[12px] py-2">No accounts on record.</div>
             ) : (
-              <table className="acc-table">
+              <table className="w-full border-collapse">
                 <thead>
-                  <tr>
-                    <th>Type</th>
-                    <th>Custodian</th>
-                    <th>Owner</th>
+                  <tr className="border-b border-border-subtle">
+                    <th className="text-[10px] font-semibold text-text-secondary uppercase tracking-[0.5px] pb-2 text-left">Type</th>
+                    <th className="text-[10px] font-semibold text-text-secondary uppercase tracking-[0.5px] pb-2 text-left pl-3">Custodian</th>
+                    <th className="text-[10px] font-semibold text-text-secondary uppercase tracking-[0.5px] pb-2 text-left pl-3">Owner</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {household.accounts.map((account) => (
-                    <tr key={account.id}>
-                      <td className="acc-primary">{account.account_type || '—'}</td>
-                      <td>{account.custodian || '—'}</td>
-                      <td>{account.ownership_distribution || '—'}</td>
+                  {household.accounts.map((a) => (
+                    <tr key={a.id} className="border-b border-border-subtle last:border-b-0">
+                      <td className="text-[12px] text-text-primary font-medium py-2">{a.account_type || '—'}</td>
+                      <td className="text-[12px] text-text-secondary py-2 pl-3">{a.custodian || '—'}</td>
+                      <td className="text-[12px] text-text-secondary py-2 pl-3">{a.ownership_distribution || '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -248,16 +232,16 @@ export default function HouseholdDetailPage({ params }: { params: Promise<{ id: 
           </div>
 
           {/* AI Audio Insights */}
-          <div className="section-card">
-            <div className="section-title">AI audio insights</div>
+          <div className={sectionCard}>
+            <div className={sectionTitle}>AI audio insights</div>
             {household.audio_insights.length === 0 ? (
-              <div style={{ color: 'var(--color-text-secondary)', fontSize: '12px', padding: '8px 0' }}>
+              <div className="text-text-secondary text-[12px] py-2">
                 No audio uploaded yet. Use the Upload Audio button to analyse a conversation.
               </div>
             ) : (
               household.audio_insights.map((insight) => (
-                <div key={insight.id} style={{ marginBottom: '12px' }}>
-                  <div className="audio-label">
+                <div key={insight.id} className="mb-3">
+                  <div className="text-[11px] text-text-info font-medium mb-1.5 flex items-center gap-1.5">
                     <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
                       <circle cx="8" cy="8" r="6" />
                       <path d="M6 6c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2v2" />
@@ -265,20 +249,24 @@ export default function HouseholdDetailPage({ params }: { params: Promise<{ id: 
                     </svg>
                     Gemini summary · {formatDate(insight.created_at)}
                   </div>
-                  <div className="audio-block">{insight.insights}</div>
+                  <div className="bg-bg-secondary rounded-lg px-3 py-2.5 text-[12px] text-text-secondary leading-relaxed">
+                    {insight.insights}
+                  </div>
                 </div>
               ))
             )}
           </div>
 
-          {/* Bank Details — only show if present */}
+          {/* Bank details — only if present */}
           {household.bank_details.length > 0 && (
-            <div className="section-card">
-              <div className="section-title">Bank details</div>
-              {household.bank_details.map((bank) => (
-                <div key={bank.id} className="detail-line">
-                  <span className="dl">{bank.bank_name || '—'}</span>
-                  <span className="dv">{[bank.bank_type, bank.account_number].filter(Boolean).join(' · ') || '—'}</span>
+            <div className={sectionCard}>
+              <div className={sectionTitle}>Bank details</div>
+              {household.bank_details.map((b) => (
+                <div key={b.id} className={detailLine}>
+                  <span className="text-text-secondary">{b.bank_name || '—'}</span>
+                  <span className="text-text-primary font-medium">
+                    {[b.bank_type, b.account_number].filter(Boolean).join(' · ') || '—'}
+                  </span>
                 </div>
               ))}
             </div>
@@ -293,23 +281,14 @@ export default function HouseholdDetailPage({ params }: { params: Promise<{ id: 
       >
         <UploadAudio
           householdId={String(household.id)}
-          onSuccess={(msg) => {
-            showToast(msg, 'success');
-            setShowAudioModal(false);
-            fetchHousehold(); // refresh to show new insight
-          }}
+          onSuccess={(msg) => { showToast(msg, 'success'); setShowAudioModal(false); fetchHousehold(); }}
           onError={(msg) => showToast(msg, 'error')}
           onClose={() => setShowAudioModal(false)}
         />
       </Modal>
 
-      {toasts.map((toast) => (
-        <Toast
-          key={toast.id}
-          message={toast.message}
-          type={toast.type}
-          onClose={() => removeToast(toast.id)}
-        />
+      {toasts.map((t) => (
+        <Toast key={t.id} message={t.message} type={t.type} onClose={() => removeToast(t.id)} />
       ))}
     </div>
   );

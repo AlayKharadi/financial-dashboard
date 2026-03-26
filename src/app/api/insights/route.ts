@@ -115,7 +115,22 @@ export async function GET() {
       count: Number(row.count),
     }));
 
-    // 8. Member count per household
+    // 8. Net worth vs income (scatter data — all households with both values)
+    const scatterResult = await query(`
+      SELECT name, net_worth, income
+      FROM households
+      WHERE net_worth IS NOT NULL AND income IS NOT NULL AND net_worth > 0 AND income > 0
+      ORDER BY net_worth DESC
+      LIMIT 30
+    `);
+
+    const householdScatter = scatterResult.rows.map((row: any) => ({
+      name: row.name,
+      netWorth: Number(row.net_worth),
+      income: Number(row.income),
+    }));
+
+    // 9. Member count per household
     const memberCountsResult = await query(`
       SELECT 
         h.name,
@@ -146,6 +161,7 @@ export async function GET() {
       riskDistribution,
       investmentObjectives,
       memberCounts,
+      householdScatter,
     });
   } catch (err) {
     console.error('Insights API error:', err);

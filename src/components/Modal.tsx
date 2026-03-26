@@ -13,80 +13,29 @@ interface ModalProps {
 
 export default function Modal({ isOpen, onClose, title, children }: ModalProps) {
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
+    document.body.style.overflow = isOpen ? 'hidden' : 'unset';
+    return () => { document.body.style.overflow = 'unset'; };
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   return (
-    <div 
-      className="modal-overlay"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 100,
-        padding: '16px',
-      }}
-    >
-      <div 
-        className="modal-content"
-        style={{
-          backgroundColor: 'var(--color-background-primary)',
-          borderRadius: 'var(--border-radius-lg)',
-          border: '0.5px solid var(--color-border-tertiary)',
-          boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
-          width: '100%',
-          maxWidth: '480px',
-          overflow: 'hidden',
-        }}
-      >
-        {/* Header */}
-        <div 
-          style={{
-            padding: '16px 24px',
-            borderBottom: '0.5px solid var(--color-border-tertiary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <h2 
-            style={{
-              fontSize: '18px',
-              fontWeight: 600,
-              color: 'var(--color-text-primary)',
-              margin: 0,
-            }}
-          >
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-100 p-4">
+      <div className="bg-bg-primary rounded-lg border border-border-subtle shadow-xl w-full max-w-120 overflow-hidden">
+
+        <div className="px-6 py-4 border-b border-border-subtle flex items-center justify-between">
+          <h2 className="text-[18px] font-semibold text-text-primary">
             {title}
           </h2>
           <button
             onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '4px',
-              cursor: 'pointer',
-              color: 'var(--color-text-secondary)',
-            }}
+            className="bg-transparent border-0 p-1 cursor-pointer text-text-secondary"
           >
             <X size={20} />
           </button>
         </div>
 
-        {/* Body */}
-        <div style={{ padding: '24px' }}>
+        <div className="p-6">
           {children}
         </div>
       </div>

@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import Sidebar from '@/components/Sidebar';
+import { shell, main, topbar, btnPrimary, statRow, stat, tableCard, tableHead, tableRow } from '@/lib/styles';
 import Modal from '@/components/Modal';
 import UploadExcel from '@/components/UploadExcel';
-import UploadAudio from '@/components/UploadAudio';
 import Toast from '@/components/Toast';
 import { useToast } from '@/components/useToast';
 
@@ -19,9 +19,24 @@ interface Household {
   account_count: number;
 }
 
+// ── badge ────────────────────────────────────────────────────────────────────
+const badgeBase = 'inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium whitespace-nowrap max-w-40 overflow-hidden text-ellipsis';
+const badgeVariant: Record<string, string> = {
+  blue:  'bg-bg-info text-text-info',
+  amber: 'bg-[#FAEEDA] text-[#854F0B]',
+  green: 'bg-[#EAF3DE] text-[#3B6D11]',
+  gray:  'bg-bg-secondary text-text-secondary border border-border-subtle',
+};
+function riskVariant(risk: string | null): string {
+  if (!risk) return badgeVariant.gray;
+  const r = risk.toLowerCase();
+  if (r === 'low') return badgeVariant.green;
+  if (r === 'moderate' || r === 'medium') return badgeVariant.amber;
+  return badgeVariant.blue;
+}
+
 export default function HouseholdsPage() {
   const [showExcelModal, setShowExcelModal] = useState(false);
-  const [showAudioModal, setShowAudioModal] = useState(false);
   const [households, setHouseholds] = useState<Household[]>([]);
   const [loading, setLoading] = useState(true);
   const { toasts, showToast, removeToast } = useToast();
@@ -38,112 +53,79 @@ export default function HouseholdsPage() {
     }
   }, [showToast]);
 
-  useEffect(() => {
-    fetchHouseholds();
-  }, [fetchHouseholds]);
+  useEffect(() => { fetchHouseholds(); }, [fetchHouseholds]);
 
-  const formatCurrency = (amount: number | null) => {
+  const fmt = (amount: number | null) => {
     if (!amount || amount > 1e12) return '—';
-    if (amount >= 1000000) return '$' + (amount / 1000000).toFixed(1) + 'M';
-    if (amount >= 1000) return '$' + (amount / 1000).toFixed(0) + 'K';
+    if (amount >= 1_000_000) return '$' + (amount / 1_000_000).toFixed(1) + 'M';
+    if (amount >= 1_000)     return '$' + (amount / 1_000).toFixed(0) + 'K';
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
   };
 
-  const getRiskBadgeClass = (risk: string | null) => {
-    if (!risk) return 'badge-gray';
-    const r = risk.toLowerCase();
-    if (r === 'low') return 'badge-green';
-    if (r === 'moderate' || r === 'medium') return 'badge-amber';
-    return 'badge-blue';
-  };
-
-  const totalHouseholds = households.length;
-  const totalNetWorth = households.reduce((sum, h) => sum + Number(h.net_worth || 0), 0);
-  const totalMembers = households.reduce((sum, h) => sum + Number(h.member_count || 0), 0);
-  const avgNetWorth = totalHouseholds > 0 ? totalNetWorth / totalHouseholds : 0;
+  const totalNetWorth = households.reduce((s, h) => s + Number(h.net_worth || 0), 0);
+  const totalMembers  = households.reduce((s, h) => s + Number(h.member_count || 0), 0);
+  const avgNetWorth   = households.length > 0 ? totalNetWorth / households.length : 0;
 
   return (
-    <div className="shell">
+    <div className={shell}>
       <Sidebar />
 
-      <div className="main">
-        <div className="tabs">
-          <div className="tab active">Households</div>
-          <Link href="/insights" className="tab">Insights</Link>
-        </div>
-
-        <div className="topbar">
+      <div className={main}>
+        {/* Topbar */}
+        <div className={topbar}>
           <div>
-            <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginBottom: '2px' }}>Overview</div>
-            <h1>All Households</h1>
+            <div className="text-[11px] text-text-secondary mb-0.5">Overview</div>
+            <h1 className="text-[15px] font-medium text-text-primary">All Households</h1>
           </div>
-          <div className="topbar-right">
-            <button
-              className="btn-sm"
-              onClick={() => setShowAudioModal(true)}
-            >
-              Upload Audio
-            </button>
-            <button
-              className="btn-sm btn-primary"
-              onClick={() => setShowExcelModal(true)}
-            >
-              + Upload Excel
-            </button>
+          <div className="flex gap-2">
+            <button className={btnPrimary} onClick={() => setShowExcelModal(true)}>+ Upload Excel</button>
           </div>
         </div>
 
-        <div className="scroll-area">
-          <div className="stat-row">
-            <div className="stat">
-              <div className="stat-label">Households</div>
-              <div className="stat-val">{totalHouseholds}</div>
-            </div>
-            <div className="stat">
-              <div className="stat-label">Total AUM</div>
-              <div className="stat-val green">{formatCurrency(totalNetWorth)}</div>
-            </div>
-            <div className="stat">
-              <div className="stat-label">Avg net worth</div>
-              <div className="stat-val">{formatCurrency(avgNetWorth)}</div>
-            </div>
-            <div className="stat">
-              <div className="stat-label">Members</div>
-              <div className="stat-val">{totalMembers}</div>
-            </div>
+        {/* Scroll area */}
+        <div className="flex-1 overflow-y-auto py-5 px-6">
+          {/* Stats */}
+          <div className={statRow}>
+            {[
+              { label: 'Households',    val: households.length, green: false },
+              { label: 'Total AUM',     val: fmt(totalNetWorth), green: true  },
+              { label: 'Avg net worth', val: fmt(avgNetWorth),   green: false },
+              { label: 'Members',       val: totalMembers,       green: false },
+            ].map(({ label, val, green }) => (
+              <div key={label} className={stat}>
+                <div className="text-[11px] text-text-secondary">{label}</div>
+                <div className={`text-[20px] font-medium mt-1 ${green ? 'text-green' : 'text-text-primary'}`}>{val}</div>
+              </div>
+            ))}
           </div>
 
+          {/* Table */}
           {loading ? (
-            <div style={{ padding: '48px', textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: '13px' }}>
-              Loading households...
-            </div>
+            <div className="py-12 text-center text-text-secondary text-[13px]">Loading households…</div>
           ) : households.length === 0 ? (
-            <div style={{ padding: '48px', textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: '13px' }}>
-              No households yet. Upload an Excel file to get started.
-            </div>
+            <div className="py-12 text-center text-text-secondary text-[13px]">No households yet. Upload an Excel file to get started.</div>
           ) : (
-            <div className="table-card">
-              <div className="table-head">
-                <div className="th">Household</div>
-                <div className="th">Income</div>
-                <div className="th">Net Worth</div>
-                <div className="th">Members</div>
-                <div className="th">Accounts</div>
-                <div className="th">Risk</div>
+            <div className={tableCard}>
+              <div className={tableHead}>
+                {['Household', 'Income', 'Net Worth', 'Members', 'Accounts', 'Risk'].map(h => (
+                  <div key={h}>{h}</div>
+                ))}
               </div>
               {households.map((h) => (
-                <Link key={h.id} href={`/households/${h.id}`} className="table-row">
-                  <div className="td name">{h.name}</div>
-                  <div className="td money">{formatCurrency(h.income)}</div>
-                  <div className="td money">{formatCurrency(h.net_worth)}</div>
-                  <div className="td">{h.member_count}</div>
-                  <div className="td">{h.account_count}</div>
-                  <div className="td">
-                    {h.risk_tolerance ? (
-                      <span className={`badge ${getRiskBadgeClass(h.risk_tolerance)}`}>
-                        {h.risk_tolerance}
-                      </span>
-                    ) : '—'}
+                <Link
+                  key={h.id}
+                  href={`/households/${h.id}`}
+                  className={tableRow}
+                >
+                  <div className="text-[12px] text-text-primary font-medium">{h.name}</div>
+                  <div className="text-[12px] text-green">{fmt(h.income)}</div>
+                  <div className="text-[12px] text-green">{fmt(h.net_worth)}</div>
+                  <div className="text-[12px] text-text-secondary">{h.member_count}</div>
+                  <div className="text-[12px] text-text-secondary">{h.account_count}</div>
+                  <div className="text-[12px]">
+                    {h.risk_tolerance
+                      ? <span className={`${badgeBase} ${riskVariant(h.risk_tolerance)}`}>{h.risk_tolerance}</span>
+                      : <span className="text-text-secondary">—</span>}
                   </div>
                 </Link>
               ))}
@@ -152,44 +134,16 @@ export default function HouseholdsPage() {
         </div>
       </div>
 
-      <Modal
-        isOpen={showExcelModal}
-        onClose={() => setShowExcelModal(false)}
-        title="Upload Excel File"
-      >
+      <Modal isOpen={showExcelModal} onClose={() => setShowExcelModal(false)} title="Upload Excel File">
         <UploadExcel
-          onSuccess={(msg) => {
-            showToast(msg, 'success');
-            setShowExcelModal(false);
-            fetchHouseholds();
-          }}
+          onSuccess={(msg) => { showToast(msg, 'success'); setShowExcelModal(false); fetchHouseholds(); }}
           onError={(msg) => showToast(msg, 'error')}
           onClose={() => setShowExcelModal(false)}
         />
       </Modal>
 
-      <Modal
-        isOpen={showAudioModal}
-        onClose={() => setShowAudioModal(false)}
-        title="Upload Audio Recording"
-      >
-        <UploadAudio
-          onSuccess={(msg) => {
-            showToast(msg, 'success');
-            setShowAudioModal(false);
-          }}
-          onError={(msg) => showToast(msg, 'error')}
-          onClose={() => setShowAudioModal(false)}
-        />
-      </Modal>
-
-      {toasts.map((toast) => (
-        <Toast
-          key={toast.id}
-          message={toast.message}
-          type={toast.type}
-          onClose={() => removeToast(toast.id)}
-        />
+{toasts.map((t) => (
+        <Toast key={t.id} message={t.message} type={t.type} onClose={() => removeToast(t.id)} />
       ))}
     </div>
   );

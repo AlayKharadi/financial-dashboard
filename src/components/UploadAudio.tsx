@@ -74,7 +74,6 @@ export default function UploadAudio({ householdId, onSuccess, onError, onClose }
       const res = await fetch('/api/upload/audio', { method: 'POST', body: formData });
       const data = await res.json();
       if (res.ok) {
-        // onSuccess?.(data.summary || 'Audio processed successfully');
         onSuccess?.("✅ Audio processed successfully! Insights have been generated.");
         setFile(null);
         setPreviewUrl(null);
@@ -89,29 +88,20 @@ export default function UploadAudio({ householdId, onSuccess, onError, onClose }
     }
   };
 
+  const isDisabled = isUploading || (!householdId && !selectedHouseholdId);
+
   return (
     <div>
       {/* Household selector — only shown when not pre-selected */}
       {!householdId && (
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{
-            display: 'block', fontSize: '11px', fontWeight: 500,
-            color: 'var(--color-text-secondary)', marginBottom: '6px',
-            textTransform: 'uppercase', letterSpacing: '0.5px',
-          }}>
+        <div className="mb-4">
+          <label className="block text-[11px] font-medium text-text-secondary mb-1.5 uppercase tracking-[0.5px]">
             Select Household
           </label>
           <select
             value={selectedHouseholdId}
             onChange={e => setSelectedHouseholdId(e.target.value)}
-            style={{
-              width: '100%', padding: '8px 12px',
-              background: 'var(--color-background-secondary)',
-              border: '0.5px solid var(--color-border-secondary)',
-              borderRadius: 'var(--border-radius-md)',
-              fontSize: '13px', color: 'var(--color-text-primary)',
-              outline: 'none', cursor: 'pointer',
-            }}
+            className="w-full px-3 py-2 bg-bg-secondary border border-border-mid rounded-md text-[13px] text-text-primary outline-none cursor-pointer"
           >
             <option value="">— Choose a household —</option>
             {households.map(h => (
@@ -126,49 +116,40 @@ export default function UploadAudio({ householdId, onSuccess, onError, onClose }
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        style={{
-          border: `2px dashed ${isDragging ? '#378ADD' : 'var(--color-border-secondary)'}`,
-          borderRadius: 'var(--border-radius-lg)',
-          padding: '32px 24px',
-          textAlign: 'center',
-          background: isDragging ? '#EBF5FF' : 'var(--color-background-secondary)',
-          transition: 'all 0.15s',
-        }}
+        className={[
+          'border-2 border-dashed rounded-lg px-6 py-8 text-center transition-all duration-150',
+          isDragging ? 'border-brand bg-[#EBF5FF]' : 'border-border-mid bg-bg-secondary',
+        ].join(' ')}
       >
-        <Mic size={36} style={{ color: '#378ADD', margin: '0 auto 12px' }} />
-        <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
+        <Mic size={36} className="text-brand mx-auto mb-3" />
+        <div className="text-[14px] font-medium text-text-primary mb-1">
           Upload Audio Recording
         </div>
-        <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '16px' }}>
+        <div className="text-[12px] text-text-secondary mb-4">
           Drop client conversation audio here
         </div>
-        <label style={{
-          display: 'inline-flex', alignItems: 'center', gap: '6px',
-          padding: '7px 14px', background: 'var(--color-background-primary)',
-          border: '0.5px solid var(--color-border-secondary)', borderRadius: 'var(--border-radius-md)',
-          fontSize: '12px', fontWeight: 500, cursor: 'pointer', color: 'var(--color-text-primary)',
-        }}>
+        <label className="inline-flex items-center gap-1.5 px-3.5 py-1.75 bg-bg-primary border border-border-mid rounded-md text-[12px] font-medium text-text-primary cursor-pointer">
           <Upload size={14} />
           Choose Audio File
-          <input type="file" accept="audio/*" style={{ display: 'none' }} onChange={handleFileSelect} />
+          <input type="file" accept="audio/*" className="hidden" onChange={handleFileSelect} />
         </label>
       </div>
 
       {/* Audio preview */}
       {file && previewUrl && (
-        <div style={{ marginTop: '12px', background: 'var(--color-background-secondary)', padding: '12px', borderRadius: 'var(--border-radius-md)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <div style={{ fontSize: '13px', color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+        <div className="mt-3 bg-bg-secondary p-3 rounded-md">
+          <div className="flex justify-between items-center mb-2">
+            <div className="text-[13px] text-text-primary overflow-hidden text-ellipsis whitespace-nowrap flex-1">
               {file.name}
             </div>
             <button
               onClick={() => { setFile(null); setPreviewUrl(null); }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', marginLeft: '8px' }}
+              className="bg-transparent border-0 cursor-pointer text-text-secondary ml-2"
             >
               <X size={16} />
             </button>
           </div>
-          <audio controls style={{ width: '100%' }} src={previewUrl} />
+          <audio controls className="w-full" src={previewUrl} />
         </div>
       )}
 
@@ -176,16 +157,12 @@ export default function UploadAudio({ householdId, onSuccess, onError, onClose }
       {file && (
         <button
           onClick={handleUpload}
-          disabled={isUploading || (!householdId && !selectedHouseholdId)}
-          style={{
-            marginTop: '16px', width: '100%', padding: '10px',
-            background: isUploading ? '#93c5fd' : '#378ADD',
-            color: 'white', border: 'none', borderRadius: 'var(--border-radius-md)',
-            fontSize: '13px', fontWeight: 500,
-            cursor: (isUploading || (!householdId && !selectedHouseholdId)) ? 'not-allowed' : 'pointer',
-            opacity: (!householdId && !selectedHouseholdId) ? 0.5 : 1,
-            transition: 'background 0.15s',
-          }}
+          disabled={isDisabled}
+          className={[
+            'mt-4 w-full py-2.5 rounded-md text-[13px] font-medium text-white border-0',
+            'transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50',
+            isUploading ? 'bg-[#93c5fd]' : 'bg-brand cursor-pointer',
+          ].join(' ')}
         >
           {isUploading ? 'Processing with Gemini...' : 'Upload & Generate Insights'}
         </button>

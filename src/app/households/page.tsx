@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import Sidebar from '@/components/Sidebar';
-import { shell, main, topbar, btnPrimary, statRow, stat, tableCard, tableHead, tableRow } from '@/lib/styles';
+import { shell, main, topbar, btnPrimary, btnSm, statRow, stat, tableCard, tableHead, tableRow } from '@/lib/styles';
 import Modal from '@/components/Modal';
 import UploadExcel from '@/components/UploadExcel';
 import Toast from '@/components/Toast';
@@ -35,17 +35,29 @@ function riskVariant(risk: string | null): string {
   return badgeVariant.blue;
 }
 
+const PAGE_SIZE = 5;
+
 export default function HouseholdsPage() {
   const [showExcelModal, setShowExcelModal] = useState(false);
   const [households, setHouseholds] = useState<Household[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [totalNetWorth, setTotalNetWorth] = useState(0);
+  const [avgNetWorth, setAvgNetWorth]     = useState(0);
+  const [totalMembers, setTotalMembers]   = useState(0);
   const { toasts, showToast, removeToast } = useToast();
 
-  const fetchHouseholds = useCallback(async () => {
+  const fetchHouseholds = useCallback(async (p: number) => {
+    setLoading(true);
     try {
-      const res = await fetch('/api/households');
+      const res  = await fetch(`/api/households?page=${p}&limit=${PAGE_SIZE}`);
       const data = await res.json();
-      setHouseholds(data);
+      setHouseholds(data.rows ?? []);
+      setTotal(data.total ?? 0);
+      setTotalNetWorth(data.totalNetWorth ?? 0);
+      setAvgNetWorth(data.avgNetWorth ?? 0);
+      setTotalMembers(data.totalMembers ?? 0);
     } catch {
       showToast('Failed to load households', 'error');
     } finally {
@@ -53,7 +65,7 @@ export default function HouseholdsPage() {
     }
   }, [showToast]);
 
-  useEffect(() => { fetchHouseholds(); }, [fetchHouseholds]);
+  useEffect(() => { fetchHouseholds(page); }, [fetchHouseholds, page]);
 
   const fmt = (amount: number | null) => {
     if (!amount || amount > 1e12) return '—';
@@ -62,9 +74,7 @@ export default function HouseholdsPage() {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
   };
 
-  const totalNetWorth = households.reduce((s, h) => s + Number(h.net_worth || 0), 0);
-  const totalMembers  = households.reduce((s, h) => s + Number(h.member_count || 0), 0);
-  const avgNetWorth   = households.length > 0 ? totalNetWorth / households.length : 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <div className={shell}>
@@ -87,7 +97,7 @@ export default function HouseholdsPage() {
           {/* Stats */}
           <div className={statRow}>
             {[
-              { label: 'Households',    val: households.length, green: false },
+              { label: 'Households',    val: total,             green: false },
               { label: 'Total AUM',     val: fmt(totalNetWorth), green: true  },
               { label: 'Avg net worth', val: fmt(avgNetWorth),   green: false },
               { label: 'Members',       val: totalMembers,       green: false },
@@ -102,41 +112,70 @@ export default function HouseholdsPage() {
           {/* Table */}
           {loading ? (
             <div className="py-12 text-center text-text-secondary text-[13px]">Loading households…</div>
-          ) : households.length === 0 ? (
+          ) : total === 0 ? (
             <div className="py-12 text-center text-text-secondary text-[13px]">No households yet. Upload an Excel file to get started.</div>
           ) : (
-            <div className={tableCard}>
-              <div className={tableHead}>
-                {['Household', 'Income', 'Net Worth', 'Members', 'Accounts', 'Risk'].map(h => (
-                  <div key={h}>{h}</div>
+            <>
+              <div className={tableCard}>
+                <div className={tableHead}>
+                  {['Household', 'Income', 'Net Worth', 'Members', 'Accounts', 'Risk'].map(h => (
+                    <div key={h}>{h}</div>
+                  ))}
+                </div>
+                {households.map((h) => (
+                  <Link
+                    key={h.id}
+                    href={`/households/${h.id}`}
+                    className={tableRow}
+                  >
+                    <div className="text-[12px] text-text-primary font-medium">{h.name}</div>
+                    <div className="text-[12px] text-green">{fmt(h.income)}</div>
+                    <div className="text-[12px] text-green">{fmt(h.net_worth)}</div>
+                    <div className="text-[12px] text-text-secondary">{h.member_count}</div>
+                    <div className="text-[12px] text-text-secondary">{h.account_count}</div>
+                    <div className="text-[12px]">
+                      {h.risk_tolerance
+                        ? <span className={`${badgeBase} ${riskVariant(h.risk_tolerance)}`}>{h.risk_tolerance}</span>
+                        : <span className="text-text-secondary">—</span>}
+                    </div>
+                  </Link>
                 ))}
               </div>
-              {households.map((h) => (
-                <Link
-                  key={h.id}
-                  href={`/households/${h.id}`}
-                  className={tableRow}
-                >
-                  <div className="text-[12px] text-text-primary font-medium">{h.name}</div>
-                  <div className="text-[12px] text-green">{fmt(h.income)}</div>
-                  <div className="text-[12px] text-green">{fmt(h.net_worth)}</div>
-                  <div className="text-[12px] text-text-secondary">{h.member_count}</div>
-                  <div className="text-[12px] text-text-secondary">{h.account_count}</div>
-                  <div className="text-[12px]">
-                    {h.risk_tolerance
-                      ? <span className={`${badgeBase} ${riskVariant(h.risk_tolerance)}`}>{h.risk_tolerance}</span>
-                      : <span className="text-text-secondary">—</span>}
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-4">
+                  <span className="text-[12px] text-text-secondary">
+                    {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)} of {total}
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      className={btnSm}
+                      onClick={() => setPage(p => p - 1)}
+                      disabled={page === 0}
+                    >
+                      ← Prev
+                    </button>
+                    <span className="flex items-center px-3 text-[12px] text-text-secondary">
+                      {page + 1} / {totalPages}
+                    </span>
+                    <button
+                      className={btnSm}
+                      onClick={() => setPage(p => p + 1)}
+                      disabled={page >= totalPages - 1}
+                    >
+                      Next →
+                    </button>
                   </div>
-                </Link>
-              ))}
-            </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
 
       <Modal isOpen={showExcelModal} onClose={() => setShowExcelModal(false)} title="Upload Excel File">
         <UploadExcel
-          onSuccess={(msg) => { showToast(msg, 'success'); setShowExcelModal(false); fetchHouseholds(); }}
+          onSuccess={(msg) => { showToast(msg, 'success'); setShowExcelModal(false); setPage(0); fetchHouseholds(0); }}
           onError={(msg) => showToast(msg, 'error')}
           onClose={() => setShowExcelModal(false)}
         />

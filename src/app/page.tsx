@@ -1,0 +1,7 @@
+// app/page.tsx
+import { redirect } from 'next/navigation';
+
+export default function HomePage() {
+  // Automatically redirect to the main Households page
+  redirect('/households');
+}
